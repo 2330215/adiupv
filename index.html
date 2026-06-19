@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adivina Quién</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #252840;
+    --text: #f0f0f5;
+    --text2: #9898b8;
+    --radius: 12px;
+    --red: #e84444;
+    --red-soft: rgba(232,68,68,0.12);
+    --red-border: rgba(232,68,68,0.35);
+    --blue: #4488ff;
+    --blue-soft: rgba(68,136,255,0.12);
+    --blue-border: rgba(68,136,255,0.35);
+    --yellow: #f5c542;
+    --yellow-soft: rgba(245,197,66,0.12);
+    --yellow-border: rgba(245,197,66,0.35);
+    --green: #43d9a2;
+    --green-soft: rgba(67,217,162,0.12);
+    --green-border: rgba(67,217,162,0.35);
+    --border: rgba(255,255,255,0.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 11px 22px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: 1px; }
+  .hdr-right { display: flex; gap: 8px; }
+
+  .btn { padding: 8px 17px; border-radius: var(--radius); border: none; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.14s; }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-red:hover { filter: brightness(1.13); }
+  .btn-blue { background: var(--blue); color: #fff; }
+  .btn-blue:hover { filter: brightness(1.13); }
+  .btn-green { background: var(--green); color: #0f1117; font-weight: 700; }
+  .btn-green:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.32; cursor: not-allowed; }
+
+  /* ── TEAM SCREEN ── */
+  #teamScreen { max-width: 620px; margin: 0 auto; padding: 56px 20px; text-align: center; }
+  #teamScreen h2 { font-size: 1.75rem; margin-bottom: 10px; }
+  #teamScreen > p { color: var(--text2); font-size: 0.88rem; margin-bottom: 42px; line-height: 1.65; }
+  .team-row { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+  .team-card {
+    width: 196px; padding: 28px 16px 22px; border-radius: 18px; cursor: pointer;
+    border: 2px solid transparent; transition: all 0.18s;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .team-card.red   { background: var(--red-soft);    border-color: var(--red-border); }
+  .team-card.blue  { background: var(--blue-soft);   border-color: var(--blue-border); }
+  .team-card.yellow{ background: var(--yellow-soft); border-color: var(--yellow-border); }
+  .team-card.green { background: var(--green-soft);  border-color: var(--green-border); }
+  .team-card:hover { transform: translateY(-5px); }
+  .team-card.red:hover    { border-color: var(--red); }
+  .team-card.blue:hover   { border-color: var(--blue); }
+  .team-card.yellow:hover { border-color: var(--yellow); }
+  .team-card.green:hover  { border-color: var(--green); }
+  .team-icon { font-size: 3rem; }
+  .team-card h3 { font-size: 1.05rem; font-weight: 700; }
+  .team-card.red h3    { color: var(--red); }
+  .team-card.blue h3   { color: var(--blue); }
+  .team-card.yellow h3 { color: var(--yellow); }
+  .team-card.green h3  { color: var(--green); }
+  .team-card small { font-size: 0.75rem; color: var(--text2); line-height: 1.5; }
+  .team-card.selected-team { transform: translateY(-6px) scale(1.04); }
+  .team-card.selected-team.red    { border-color: var(--red);    box-shadow: 0 0 0 3px var(--red-soft); }
+  .team-card.selected-team.blue   { border-color: var(--blue);   box-shadow: 0 0 0 3px var(--blue-soft); }
+  .team-card.selected-team.yellow { border-color: var(--yellow); box-shadow: 0 0 0 3px var(--yellow-soft); }
+  .team-card.selected-team.green  { border-color: var(--green);  box-shadow: 0 0 0 3px var(--green-soft); }
+
+  /* ── PICK SCREEN ── */
+  #pickScreen { max-width: 920px; margin: 0 auto; padding: 26px 20px; }
+  .pick-header { margin-bottom: 20px; }
+  .side-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 13px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-bottom: 10px;
+  }
+  .side-tag.red    { background: var(--red-soft);    color: var(--red);    border: 1px solid var(--red-border); }
+  .side-tag.blue   { background: var(--blue-soft);   color: var(--blue);   border: 1px solid var(--blue-border); }
+  .side-tag.yellow { background: var(--yellow-soft); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .side-tag.green  { background: var(--green-soft);  color: var(--green);  border: 1px solid var(--green-border); }
+  .pick-header h2 { font-size: 1.25rem; margin-bottom: 5px; }
+  .pick-header p { color: var(--text2); font-size: 0.84rem; }
+
+  .pick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 9px; margin-bottom: 20px;
+  }
+  .pick-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; cursor: pointer;
+    transition: all 0.14s; display: flex; flex-direction: column; align-items: center;
+    user-select: none;
+  }
+  .pick-card:hover { transform: translateY(-3px); }
+  .pick-card.red:hover    { border-color: var(--red); }
+  .pick-card.blue:hover   { border-color: var(--blue); }
+  .pick-card.yellow:hover { border-color: var(--yellow); }
+  .pick-card.green:hover  { border-color: var(--green); }
+  .pick-card.selected.red    { border-color: var(--red);    background: var(--red-soft);    box-shadow: 0 0 0 2px var(--red); }
+  .pick-card.selected.blue   { border-color: var(--blue);   background: var(--blue-soft);   box-shadow: 0 0 0 2px var(--blue); }
+  .pick-card.selected.yellow { border-color: var(--yellow); background: var(--yellow-soft); box-shadow: 0 0 0 2px var(--yellow); }
+  .pick-card.selected.green  { border-color: var(--green);  background: var(--green-soft);  box-shadow: 0 0 0 2px var(--green); }
+  .pick-card .pc-img { width: 100%; height: 86px; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+  .pick-card .pc-img img { width: 100%; height: 100%; object-fit: cover; }
+  .pick-card .pc-name { font-size: 0.74rem; font-weight: 600; padding: 6px 4px; text-align: center; }
+
+  /* ── GAME SCREEN ── */
+  #gameScreen { max-width: 1060px; margin: 0 auto; padding: 18px 20px 30px; }
+
+  .game-top {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .secret-pill {
+    display: flex; align-items: center; gap: 9px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 40px; padding: 7px 14px 7px 8px; flex-shrink: 0;
+  }
+  .secret-pill .sp-img { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .secret-pill .sp-img img { width: 100%; height: 100%; object-fit: cover; }
+  .secret-pill .sp-lbl { font-size: 0.67rem; color: var(--text2); line-height: 1; margin-bottom: 2px; }
+  .secret-pill .sp-name { font-size: 0.86rem; font-weight: 700; }
+  .rem-badge {
+    margin-left: auto; background: var(--surface2); border-radius: 20px;
+    padding: 5px 13px; font-size: 0.78rem; color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .rem-badge span { font-weight: 700; color: var(--text); }
+
+  /* board */
+  .board-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(102px, 1fr));
+    gap: 9px; margin-bottom: 20px;
+  }
+  .board-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; cursor: pointer;
+    transition: all 0.15s; position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    user-select: none;
+  }
+  .board-card.red-opp:hover:not(.out)    { border-color: var(--red); }
+  .board-card.blue-opp:hover:not(.out)   { border-color: var(--blue); }
+  .board-card.yellow-opp:hover:not(.out) { border-color: var(--yellow); }
+  .board-card.green-opp:hover:not(.out)  { border-color: var(--green); }
+  .board-card.out { opacity: 0.16; filter: grayscale(1); border-color: transparent !important; cursor: default; }
+  .board-card .bc-img { width: 100%; height: 84px; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+  .board-card .bc-img img { width: 100%; height: 100%; object-fit: cover; }
+  .board-card .bc-name { font-size: 0.73rem; font-weight: 600; padding: 5px 4px; text-align: center; }
+  .board-card .bc-x { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: var(--red); opacity: 0; pointer-events: none; }
+  .board-card.out .bc-x { opacity: 0.65; }
+
+  /* ── GUESS PANEL ── */
+  .guess-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-top: 4px;
+  }
+  .guess-panel-header {
+    padding: 14px 18px 12px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .guess-panel-header .gph-title { font-size: 0.95rem; font-weight: 700; flex: 1; }
+  .guess-panel-header .gph-sub { font-size: 0.78rem; color: var(--text2); }
+  .guess-search-wrap {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .guess-search-wrap input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; color: var(--text);
+    font-size: 0.84rem; outline: none; transition: border-color 0.15s;
+  }
+  .guess-search-wrap input:focus { border-color: var(--green); }
+  .guess-search-wrap input::placeholder { color: var(--text2); }
+
+  .guess-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px; padding: 12px 14px; max-height: 260px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--surface2) transparent;
+  }
+  .guess-grid::-webkit-scrollbar { width: 4px; }
+  .guess-grid::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+
+  .gcard {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    cursor: pointer; padding: 8px 6px 7px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--surface2);
+    transition: all 0.13s; position: relative; user-select: none;
+  }
+  .gcard:hover:not(.gcard-out) { transform: translateY(-3px) scale(1.03); }
+  .gcard.red-opp:hover:not(.gcard-out)    { border-color: var(--red);    box-shadow: 0 4px 14px rgba(232,68,68,0.2); }
+  .gcard.blue-opp:hover:not(.gcard-out)   { border-color: var(--blue);   box-shadow: 0 4px 14px rgba(68,136,255,0.2); }
+  .gcard.yellow-opp:hover:not(.gcard-out) { border-color: var(--yellow); box-shadow: 0 4px 14px rgba(245,197,66,0.2); }
+  .gcard.green-opp:hover:not(.gcard-out)  { border-color: var(--green);  box-shadow: 0 4px 14px rgba(67,217,162,0.2); }
+  .gcard.selected-guess.red-opp    { border-color: var(--red);    background: var(--red-soft);    box-shadow: 0 0 0 2.5px var(--red),    0 6px 20px rgba(232,68,68,0.3);   transform: translateY(-4px) scale(1.05); }
+  .gcard.selected-guess.blue-opp   { border-color: var(--blue);   background: var(--blue-soft);   box-shadow: 0 0 0 2.5px var(--blue),   0 6px 20px rgba(68,136,255,0.3);  transform: translateY(-4px) scale(1.05); }
+  .gcard.selected-guess.yellow-opp { border-color: var(--yellow); background: var(--yellow-soft); box-shadow: 0 0 0 2.5px var(--yellow), 0 6px 20px rgba(245,197,66,0.3);  transform: translateY(-4px) scale(1.05); }
+  .gcard.selected-guess.green-opp  { border-color: var(--green);  background: var(--green-soft);  box-shadow: 0 0 0 2.5px var(--green),  0 6px 20px rgba(67,217,162,0.3);  transform: translateY(-4px) scale(1.05); }
+  .gcard.gcard-out { opacity: 0.22; filter: grayscale(1); cursor: default; }
+  .gcard .gc-img { width: 52px; height: 52px; border-radius: 8px; overflow: hidden; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .gcard .gc-img img { width: 100%; height: 100%; object-fit: cover; }
+  .gcard .gc-name { font-size: 0.68rem; font-weight: 600; text-align: center; line-height: 1.3; }
+  .gcard .gc-wrong-badge { position: absolute; top: 4px; right: 4px; background: var(--red); color: #fff; font-size: 0.6rem; font-weight: 700; border-radius: 4px; padding: 1px 4px; }
+
+  .guess-action-bar {
+    padding: 11px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; background: var(--surface2); flex-wrap: wrap;
+  }
+  .gab-preview {
+    display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0;
+    animation: fadeInLeft 0.2s ease;
+  }
+  @keyframes fadeInLeft { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform: translateX(0); } }
+  .gab-avatar { width: 38px; height: 38px; border-radius: 9px; overflow: hidden; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.5rem; }
+  .gab-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .gab-info .gab-name { font-size: 0.9rem; font-weight: 700; }
+  .gab-info .gab-hint { font-size: 0.72rem; color: var(--text2); }
+  .gab-empty { font-size: 0.82rem; color: var(--text2); flex: 1; }
+  .no-results { text-align: center; color: var(--text2); font-size: 0.82rem; padding: 28px 0; grid-column: 1/-1; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 500; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; max-width: 380px; width: 92%; text-align: center; }
+  .modal .modal-char-img { width: 72px; height: 72px; border-radius: 12px; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 2.6rem; }
+  .modal .modal-char-img img { width: 100%; height: 100%; object-fit: cover; }
+  .modal h2 { font-size: 1.2rem; margin-bottom: 8px; }
+  .modal p { color: var(--text2); font-size: 0.86rem; line-height: 1.6; margin-bottom: 20px; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── TOAST ── */
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--surface2); color: var(--text); padding: 9px 20px; border-radius: 20px; font-size: 0.83rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 1000; border: 1px solid var(--border); white-space: nowrap; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 480px) {
+    .board-grid, .pick-grid { grid-template-columns: repeat(auto-fill, minmax(86px,1fr)); }
+    .board-card .bc-img, .pick-card .pc-img { height: 70px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎭 ADIVINA QUIÉN</h1>
+  <div class="hdr-right">
+    <button class="btn btn-ghost" id="btnMenu" style="display:none" onclick="goMenu()">← Menú</button>
+    <button class="btn btn-ghost" id="btnRestart" style="display:none" onclick="goMenu()">↺ Nueva partida</button>
+  </div>
+</header>
+
+<!-- ══════ 1: ELEGIR EQUIPO ══════ -->
+<div id="teamScreen" class="screen active">
+  <div style="max-width:700px;margin:0 auto;padding:48px 20px;text-align:center;">
+    <h2 style="font-size:1.75rem;margin-bottom:10px;">¿De qué lado juegas?</h2>
+    <p style="color:var(--text2);font-size:0.88rem;margin-bottom:36px;line-height:1.65;">
+      Elige tu equipo y luego elige contra quién vas a jugar.<br>
+      Tu tablero mostrará los personajes del equipo <strong>contrario</strong>.
+    </p>
+
+    <!-- PASO 1: elige tu equipo -->
+    <div style="margin-bottom:10px;">
+      <p style="font-size:0.78rem;font-weight:700;letter-spacing:1px;color:var(--text2);text-transform:uppercase;margin-bottom:18px;">Paso 1 — Tu equipo</p>
+      <div class="team-row" id="myTeamRow">
+        <div class="team-card red"    id="tc-red"    onclick="selectMyTeam('red')">
+          <div class="team-icon">🔴</div><h3>Equipo Rojo</h3><small>Tus personajes secretos son los rojos.</small>
+        </div>
+        <div class="team-card blue"   id="tc-blue"   onclick="selectMyTeam('blue')">
+          <div class="team-icon">🔵</div><h3>Equipo Azul</h3><small>Tus personajes secretos son los azules.</small>
+        </div>
+        <div class="team-card yellow" id="tc-yellow" onclick="selectMyTeam('yellow')">
+          <div class="team-icon">🟡</div><h3>Equipo Amarillo</h3><small>Tus personajes secretos son los amarillos.</small>
+        </div>
+        <div class="team-card green"  id="tc-green"  onclick="selectMyTeam('green')">
+          <div class="team-icon">🟢</div><h3>Equipo Verde</h3><small>Tus personajes secretos son los verdes.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: elige rival (aparece después) -->
+    <div id="oppStep" style="display:none;margin-top:36px;">
+      <p style="font-size:0.78rem;font-weight:700;letter-spacing:1px;color:var(--text2);text-transform:uppercase;margin-bottom:18px;">Paso 2 — ¿Contra quién juegas?</p>
+      <div class="team-row" id="oppTeamRow"></div>
+      <button class="btn btn-green" id="btnStartPick" onclick="confirmTeams()" disabled style="margin-top:28px;padding:11px 32px;font-size:0.92rem;">
+        Continuar →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ 2: ELEGIR PERSONAJE SECRETO ══════ -->
+<div id="pickScreen" class="screen">
+  <div style="max-width:920px;margin:0 auto;padding:26px 20px;">
+    <div class="pick-header">
+      <div class="side-tag" id="pickTag"></div>
+      <h2>Elige tu personaje secreto</h2>
+      <p id="pickDesc" style="color:var(--text2);font-size:0.84rem;margin-top:4px;"></p>
+    </div>
+    <div class="pick-grid" id="pickGrid"></div>
+    <button class="btn" id="btnConfirm" onclick="confirmPick()" disabled>Confirmar y jugar →</button>
+  </div>
+</div>
+
+<!-- ══════ 3: TABLERO DE JUEGO ══════ -->
+<div id="gameScreen" class="screen">
+  <div style="max-width:1060px;margin:0 auto;padding:18px 20px 30px;">
+
+    <div class="game-top">
+      <div class="side-tag" id="gameTag"></div>
+      <div class="secret-pill">
+        <div class="sp-img" id="spImg"></div>
+        <div>
+          <div class="sp-lbl">Tu personaje secreto</div>
+          <div class="sp-name" id="spName"></div>
+        </div>
+      </div>
+      <div class="rem-badge">Activos: <span id="remCount">—</span></div>
+    </div>
+
+    <div class="board-grid" id="boardGrid"></div>
+
+    <!-- Panel adivinar -->
+    <div class="guess-panel">
+      <div class="guess-panel-header">
+        <div>
+          <div class="gph-title">🎯 ¿Quién es el personaje secreto del oponente?</div>
+          <div class="gph-sub">Selecciona al que crees que eligieron y apuesta tu suposición</div>
+        </div>
+      </div>
+      <div class="guess-search-wrap">
+        <span style="font-size:0.9rem;">🔍</span>
+        <input type="text" id="guessSearch" placeholder="Buscar personaje…" oninput="filterGuessGrid()" autocomplete="off">
+        <span id="guessFilterCount" style="font-size:0.75rem;color:var(--text2);white-space:nowrap;"></span>
+      </div>
+      <div class="guess-grid" id="guessGrid"></div>
+      <div class="guess-action-bar">
+        <span class="gab-empty" id="gabEmpty">👆 Selecciona un personaje arriba</span>
+        <div class="gab-preview" id="gabPreview" style="display:none;">
+          <div class="gab-avatar" id="gabAvatar"></div>
+          <div class="gab-info">
+            <div class="gab-name" id="gabName"></div>
+            <div class="gab-hint">¿Es este el personaje secreto?</div>
+          </div>
+        </div>
+        <button class="btn btn-green" id="btnGuess" onclick="openGuessModal()" disabled>¡Adivinar! 🎯</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: confirmar -->
+<div class="modal-overlay" id="guessModal">
+  <div class="modal">
+    <div class="modal-char-img" id="modalImg"></div>
+    <h2>¿Es <span id="modalName" style="color:var(--green)"></span>?</h2>
+    <p>Pregunta a tu oponente en voz alta o por llamada.<br>Cuando confirmen, marca el resultado aquí.</p>
+    <div class="modal-btns">
+      <button class="btn btn-green" onclick="guessResult(true)">✅ ¡Sí, acerté!</button>
+      <button class="btn btn-ghost" onclick="guessResult(false)">❌ No era ese</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: win -->
+<div class="modal-overlay" id="winModal">
+  <div class="modal">
+    <div style="font-size:3rem;margin-bottom:12px;">🏆</div>
+    <h2 style="color:var(--green);margin-bottom:8px;">¡Ganaste!</h2>
+    <p id="winText"></p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="goMenu()">Nueva partida</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const RED_CHARS = [
+  { name: 'Morfoespacio de las Garnachas', img: 'imagenes/ae.jpeg' },
+  { name: 'Amlo Kimetsu', img: 'imagenes/amlo.jpeg' },
+  { name: 'Anti-César', img: 'imagenes/anticesar.jpeg' },
+  { name: 'Avidios', img: 'imagenes/avidios.jpeg' },
+  { name: 'Brayan en Doggys', img: 'imagenes/brayan.jpeg' },
+  { name: 'Brayan rezando', img: 'imagenes/bry+.jpeg' },
+  { name: 'La INE de Carlos', img: 'imagenes/carlos.jpeg' },
+  { name: 'César sudado y descojonandose', img: 'imagenes/ces.jpeg' },
+  { name: 'César aca todo cotorro', img: 'imagenes/cesar2.jpeg' },
+  { name: 'César maniacote', img: 'imagenes/cesarmaniacote.png' },
+  { name: 'El ingeniero Montes Lopez', img: 'imagenes/cesarpapoi.jpeg' },
+  { name: 'César x Brayan ship', img: 'imagenes/cesxbra.jpeg' },
+  { name: 'Don Alfonso y su pelado', img: 'imagenes/chad.jpeg' },
+  { name: 'Dante Griffin', img: 'imagenes/col.jpeg' },
+  { name: 'César Comunista', img: 'imagenes/com.jpeg' },
+  { name: 'Uraraka pies', img: 'imagenes/cuca.jpeg' },
+  { name: 'Fonsi el Santo', img: 'imagenes/dio.jpeg' },
+  { name: 'Se cayo el transformador', img: 'imagenes/dou.jpeg' },
+  { name: 'César pregunton', img: 'imagenes/duda.jpeg' },
+  { name: 'El CicloPepe', img: 'imagenes/elciclopepe.png' },
+  { name: 'El gran Santiago', img: 'imagenes/elgransantiago.png' },
+  { name: 'Fidencio impactado', img: 'imagenes/fi.jpeg' },
+  { name: 'Foto del grupo', img: 'imagenes/fo.jpeg' },
+  { name: 'César primigenio', img: 'imagenes/foto.png' },
+  { name: 'Carnitas los gays', img: 'imagenes/gay.jpeg' },
+  { name: 'César empinandose 2 litros de jugo del valle que le sucede a este sujeto?', img: 'imagenes/glu.jpeg' },
+  { name: 'Cësar despelotado', img: 'imagenes/gol.jpeg' },
+  { name: 'En vivo desde las hemorroides', img: 'imagenes/hemo.jpeg' },
+  { name: 'Un Leon que envio Hiram para avisar de corte', img: 'imagenes/hira.jpeg' },
+  { name: 'Juan lol', img: 'imagenes/Juan.jpeg' }
+];
+
+const BLUE_CHARS = [
+  { name: 'kaladin funko', img: 'imagenes/kaladinfunko.png' },
+  { name: 'kike x César ship', img: 'imagenes/kik.jpeg' },
+  { name: 'Kitty Vader', img: 'imagenes/kitty.png' },
+  { name: 'Linux comunista', img: 'imagenes/lin.jpeg' },
+  { name: 'Lumbreras teorico', img: 'imagenes/lu.jpeg' },
+  { name: 'César sonriendo', img: 'imagenes/mania.jpeg' },
+  { name: 'Mascorro', img: 'imagenes/mas.jpeg' },
+  { name: 'Un meme que me dijo Ulises que pusiera', img: 'imagenes/meme.png' },
+  { name: 'mesa', img: 'imagenes/mesa.png' },
+  { name: 'modelo', img: 'imagenes/modelo.png' },
+  { name: 'moneda', img: 'imagenes/moneda.png' },
+  { name: 'muerto', img: 'imagenes/muerto.jpeg' },
+  { name: 'kaladin', img: 'imagenes/kaladin.png' },
+  { name: 'naz', img: 'imagenes/naz.jpeg' },
+  { name: 'Que tengas un monito dia', img: 'imagenes/omaigoto.mp4', isVideo: true },
+  { name: 'César x Brayan 2 ship', img: 'imagenes/omo.jpeg' },
+  { name: 'Ponysona de César', img: 'imagenes/pon.jpeg' },
+  { name: 'César Cavifax', img: 'imagenes/pop.jpeg' },
+  { name: 'Presentación de Lumbreras que nunca entregamos', img: 'imagenes/presentacion.png' },
+  { name: 'Medio kilo de Rambutan', img: 'imagenes/rambutan.png' },
+  { name: 'Said cumpleaños', img: 'imagenes/said.jpeg' },
+  { name: 'Adrian senpai', img: 'imagenes/senpai.jpeg' },
+  { name: 'Skibidi César', img: 'imagenes/ski.jpeg' },
+  { name: 'Tepiscoeloyo', img: 'imagenes/tepiscoloyo.png' },
+  { name: 'Brayan con trensas', img: 'imagenes/trensa.jpeg' },
+  { name: 'Ulises', img: 'imagenes/ulises.png' },
+  { name: 'Farid dieck con un furro', img: 'imagenes/uwu.jpeg' },
+  { name: ':V', img: 'imagenes/v.jpeg' },
+  { name: 'Old man César', img: 'imagenes/viejo.jpeg' },
+  { name: 'El senpai dormido', img: 'imagenes/zzz.jpeg' }
+];
+
+const YELLOW_CHARS = [
+  { name: 'Sourder', img: 'imagenes/sourder.png' },
+  { name: 'Fis Sure', img: 'imagenes/fis.png' },
+  { name: 'Tamal', img: 'imagenes/tamal.png' },
+  { name: 'Joseny', img: 'imagenes/juan.png' },
+  { name: 'El pene de dylan', img: 'imagenes/dylanpene.png' },
+  { name: 'Una rica piña', img: 'imagenes/unarica.png' },
+  { name: 'Chocolat', img: 'imagenes/chocolat.png' },
+  { name: 'Cubo de tungsteno', img: 'imagenes/cubo.png' },
+  { name: 'Samuh', img: 'imagenes/samuh.png' },
+  { name: 'Excalibur toilet', img: 'imagenes/toilet.png' },
+  { name: 'Curi Crucificado', img: 'imagenes/curicruz.png' },
+  { name: 'Dee', img: 'imagenes/dee.png' },
+  { name: 'El tipo que dice me lo voy a coger', img: 'imagenes/melovoy.png' },
+  { name: 'El chico que se parece mucho a pomni', img: 'imagenes/pomni.png' },
+  { name: 'Jane Doe', img: 'imagenes/jane.png' },
+  { name: 'El groomer de la escuadra', img: 'imagenes/grumer.png' },
+  { name: 'Kevin', img: 'imagenes/Kevin.png' },
+  { name: 'Esa imagen de la cq', img: 'imagenes/cq.png' },
+  { name: 'Harrow', img: 'imagenes/harrow.png' },
+  { name: 'Totoya/Curi', img: 'imagenes/Totoya.png' },
+  { name: 'Un momo que me dijo fis que pusiera', img: 'imagenes/momo.png' },
+  { name: 'El Nieto de Capulina', img: 'imagenes/capunieto.png' },
+  { name: 'Las preguntas que le hacen a los nuevos', img: 'imagenes/preguntas.png' },
+  { name: 'La coneja', img: 'imagenes/coneja.png' },
+  { name: 'Manus', img: 'imagenes/manus.png' },
+  { name: 'Durango', img: 'imagenes/durango.png' },
+  { name: 'La ñema mia', img: 'imagenes/ema.png' },
+  { name: 'Gato con zhuzhu', img: 'imagenes/gato.png' },
+  { name: 'El ingeniero Laterra', img: 'imagenes/inge.png' },
+  { name: 'Kikin Fonseca', img: 'imagenes/kikin.png' },
+];
+
+const GREEN_CHARS = [
+  { name: 'El asesino de Charlie Kirk', img: 'imagenes/kirk.png' },
+  { name: 'Nicolas Maduro', img: 'imagenes/maduro.png' },
+  { name: 'Lo bueno de ser malo', img: 'imagenes/malo.png' },
+  { name: 'Miku de los mochis', img: 'imagenes/mikupirata.png' },
+  { name: 'Que tengas un monito dia', img: 'imagenes/monito.png' },
+  { name: 'Mono Mono Sahur', img: 'imagenes/mono.png' },
+  { name: 'Moshi Moshi', img: 'imagenes/moshi.png' },
+  { name: 'Ninja cumeado', img: 'imagenes/ninja.png' },
+  { name: 'Saddam Hussein', img: 'imagenes/saddam.png' },
+  { name: 'La arrolladora banda el limon', img: 'imagenes/nose2.png' },
+  { name: 'Xiko diciendo nyarambolas', img: 'imagenes/nyan.png' },
+  { name: 'Otro momo que me dijo Fis que pusiera', img: 'imagenes/otromomo.png' },
+  { name: 'Yo intentando quitarme la vida', img: 'imagenes/pene.png' },
+  { name: 'Marina Splatoon', img: 'imagenes/perlan.png' },
+  { name: 'emoji :nopapu:', img: 'imagenes/pollo.png' },
+  { name: 'Quico Natanael', img: 'imagenes/quico.png' },
+  { name: 'Rasputia', img: 'imagenes/rasputia.png' },
+  { name: 'El rey helado del fornai', img: 'imagenes/rey.png' },
+  { name: 'La gata robot del VOTV', img: 'imagenes/robogata.png' },
+  { name: 'El patito serio', img: 'imagenes/serio.png' },
+  { name: 'Shaq pidiendo tiempo', img: 'imagenes/shaq.png' },
+  { name: 'Kasane Teto', img: 'imagenes/teto.png' },
+  { name: 'El despiporre', img: 'imagenes/touha.png' },
+  { name: 'Triple T', img: 'imagenes/tung.png' },
+  { name: 'Ahora si viene lo chido esa perra esta loca me tientas me tientas ahora tengo el poder absoluto y me la pelas', img: 'imagenes/wawa.png' },
+  { name: 'Yo viendo cuanto cuesta el kilo de tortillas', img: 'imagenes/Yo_viendo.png' },
+  { name: 'Tudi miona', img: 'imagenes/tudimiona.png' },
+  { name: 'Ovulando sin mi nena?', img: 'imagenes/ovulando.png' },
+  { name: 'Escuadrita bonita First Gen', img: 'imagenes/escuadritabonita.png' },
+  { name: 'Una fumo saludando', img: 'imagenes/fumo.mp4', isVideo: true },
+];
+
+// ── STATE ──
+let myTeam = '', oppTeam = '';
+let myChars = [], oppChars = [];
+let secretIdx = null;
+let eliminated = new Set();
+let selectedGuess = null;
+let wrongGuesses = new Set();
+let guessSearchQuery = '';
+
+const TEAM_CHARS = { red: RED_CHARS, blue: BLUE_CHARS, yellow: YELLOW_CHARS, green: GREEN_CHARS };
+const TEAM_LABEL = { red: 'Equipo Rojo 🔴', blue: 'Equipo Azul 🔵', yellow: 'Equipo Amarillo 🟡', green: 'Equipo Verde 🟢' };
+const TEAM_EMOJI = { red: '🔴', blue: '🔵', yellow: '🟡', green: '🟢' };
+const TEAM_COLOR_VAR = { red: 'var(--red)', blue: 'var(--blue)', yellow: 'var(--yellow)', green: 'var(--green)' };
+const ALL_TEAMS = ['red', 'blue', 'yellow', 'green'];
+
+// ── STEP 1a: SELECT MY TEAM ──
+function selectMyTeam(color) {
+  myTeam = color;
+  document.querySelectorAll('#myTeamRow .team-card').forEach(c => c.classList.remove('selected-team'));
+  document.getElementById(`tc-${color}`).classList.add('selected-team');
+
+  const oppRow = document.getElementById('oppTeamRow');
+  oppRow.innerHTML = '';
+  oppTeam = '';
+  document.getElementById('btnStartPick').disabled = true;
+
+  ALL_TEAMS.filter(t => t !== color).forEach(t => {
+    const card = document.createElement('div');
+    card.className = `team-card ${t}`;
+    card.id = `opp-${t}`;
+    const label = TEAM_LABEL[t].replace(/ [🔴🔵🟡🟢]/, '');
+    card.innerHTML = `<div class="team-icon">${TEAM_EMOJI[t]}</div><h3>${label}</h3><small>Adivinarás sus personajes en el tablero.</small>`;
+    card.onclick = () => selectOppTeam(t);
+    oppRow.appendChild(card);
+  });
+
+  document.getElementById('oppStep').style.display = '';
+}
+
+// ── STEP 1b: SELECT OPPONENT TEAM ──
+function selectOppTeam(color) {
+  oppTeam = color;
+  document.querySelectorAll('#oppTeamRow .team-card').forEach(c => c.classList.remove('selected-team'));
+  document.getElementById(`opp-${color}`).classList.add('selected-team');
+  document.getElementById('btnStartPick').disabled = false;
+}
+
+// ── STEP 1c: CONFIRM AND PROCEED ──
+function confirmTeams() {
+  if (!myTeam || !oppTeam) return;
+  myChars  = TEAM_CHARS[myTeam];
+  oppChars = TEAM_CHARS[oppTeam];
+  showPickScreen();
+}
+
+// ── STEP 2: PICK SECRET ──
+function showPickScreen() {
+  const tag = document.getElementById('pickTag');
+  tag.className = `side-tag ${myTeam}`;
+  tag.textContent = TEAM_LABEL[myTeam];
+
+  document.getElementById('pickDesc').textContent =
+    `Estos son tus personajes. Elige uno como tu personaje secreto — tu oponente intentará adivinarlo.`;
+
+  const btn = document.getElementById('btnConfirm');
+  btn.style.background = TEAM_COLOR_VAR[myTeam];
+  btn.style.color = myTeam === 'yellow' || myTeam === 'green' ? '#0f1117' : '#fff';
+  btn.disabled = true;
+  secretIdx = null;
+
+  const grid = document.getElementById('pickGrid');
+  grid.innerHTML = '';
+  myChars.forEach((ch, i) => {
+    const card = document.createElement('div');
+    card.className = `pick-card ${myTeam}`;
+    card.dataset.i = i;
+    card.innerHTML = avatarHTML(ch, 86) + `<div class="pc-name">${ch.name}</div>`;
+    card.onclick = () => {
+      secretIdx = i;
+      document.querySelectorAll('.pick-card').forEach(c => c.classList.toggle('selected', +c.dataset.i === i));
+      btn.disabled = false;
+    };
+    grid.appendChild(card);
+  });
+
+  showScreen('pickScreen');
+}
+
+function confirmPick() {
+  if (secretIdx === null) return;
+  eliminated = new Set();
+  wrongGuesses = new Set();
+  selectedGuess = null;
+  guessSearchQuery = '';
+  startGame();
+}
+
+// ── STEP 3: GAME ──
+function startGame() {
+  const gt = document.getElementById('gameTag');
+  gt.className = `side-tag ${myTeam}`;
+  gt.textContent = TEAM_LABEL[myTeam];
+
+  const secret = myChars[secretIdx];
+  const spImg = document.getElementById('spImg');
+  spImg.innerHTML = secret.img ? `<img src="${secret.img}" alt="${secret.name}">` : '';
+  document.getElementById('spName').textContent = secret.name;
+  document.getElementById('spName').style.color = TEAM_COLOR_VAR[myTeam];
+
+  renderBoard();
+  guessSearchQuery = '';
+  if (document.getElementById('guessSearch')) document.getElementById('guessSearch').value = '';
+  renderGuessGrid();
+  clearGuessSelection();
+  updateRemaining();
+
+  document.getElementById('btnMenu').style.display = '';
+  document.getElementById('btnRestart').style.display = '';
+  showScreen('gameScreen');
+}
+
+function renderBoard() {
+  const grid = document.getElementById('boardGrid');
+  grid.innerHTML = '';
+  oppChars.forEach((ch, i) => {
+    const card = document.createElement('div');
+    card.className = `board-card ${oppTeam}-opp` + (eliminated.has(i) ? ' out' : '');
+    card.dataset.i = i;
+    card.innerHTML = `<div class="bc-img">${innerAvatar(ch)}</div><div class="bc-name">${ch.name}</div><div class="bc-x">✕</div>`;
+    card.onclick = () => !eliminated.has(i) ? eliminate(i) : restore(i);
+    grid.appendChild(card);
+  });
+}
+
+function eliminate(i) {
+  eliminated.add(i);
+  if (selectedGuess === i) clearGuessSelection();
+  const card = document.querySelector(`.board-card[data-i="${i}"]`);
+  if (card) card.classList.add('out');
+  updateRemaining();
+  renderGuessGrid();
+}
+
+function restore(i) {
+  eliminated.delete(i);
+  const card = document.querySelector(`.board-card[data-i="${i}"]`);
+  if (card) card.classList.remove('out');
+  updateRemaining();
+  renderGuessGrid();
+}
+
+function updateRemaining() {
+  const left = oppChars.length - eliminated.size;
+  document.getElementById('remCount').textContent = `${left} / ${oppChars.length}`;
+}
+
+// ── GUESS GRID ──
+function renderGuessGrid() {
+  const grid = document.getElementById('guessGrid');
+  const q = guessSearchQuery.toLowerCase().trim();
+  grid.innerHTML = '';
+
+  const visible = oppChars.filter(ch => !q || ch.name.toLowerCase().includes(q));
+
+  const countEl = document.getElementById('guessFilterCount');
+  if (q) {
+    countEl.textContent = `${visible.length} resultado${visible.length !== 1 ? 's' : ''}`;
+  } else {
+    const active = oppChars.length - eliminated.size;
+    countEl.textContent = `${active} activo${active !== 1 ? 's' : ''}`;
+  }
+
+  if (visible.length === 0) {
+    grid.innerHTML = `<div class="no-results">😶 Sin resultados para "<strong>${q}</strong>"</div>`;
+    return;
+  }
+
+  visible.forEach(ch => {
+    const i = oppChars.indexOf(ch);
+    const card = document.createElement('div');
+    const isOut = eliminated.has(i);
+    const isWrong = wrongGuesses.has(i);
+    card.className = `gcard ${oppTeam}-opp` + (isOut ? ' gcard-out' : '') + (selectedGuess === i ? ' selected-guess' : '');
+    card.dataset.i = i;
+
+    const imgHtml = ch.img
+      ? `<div class="gc-img"><img src="${ch.img}" alt="${ch.name}"></div>`
+      : `<div class="gc-emoji">❓</div>`;
+    const wrongBadge = isWrong ? `<span class="gc-wrong-badge">✗</span>` : '';
+
+    card.innerHTML = imgHtml + `<div class="gc-name">${ch.name}</div>` + wrongBadge;
+    if (!isOut) card.onclick = () => selectGuess(i);
+    grid.appendChild(card);
+  });
+}
+
+function filterGuessGrid() {
+  guessSearchQuery = document.getElementById('guessSearch').value;
+  renderGuessGrid();
+}
+
+function selectGuess(i) {
+  if (eliminated.has(i)) return;
+  selectedGuess = i;
+  const ch = oppChars[i];
+  renderGuessGrid();
+
+  document.getElementById('gabEmpty').style.display = 'none';
+  const prev = document.getElementById('gabPreview');
+  prev.style.display = 'flex';
+  const avatarEl = document.getElementById('gabAvatar');
+  avatarEl.innerHTML = ch.img ? `<img src="${ch.img}" alt="${ch.name}">` : '❓';
+  document.getElementById('gabName').textContent = ch.name;
+  document.getElementById('btnGuess').disabled = false;
+}
+
+function clearGuessSelection() {
+  selectedGuess = null;
+  document.getElementById('gabEmpty').style.display = '';
+  document.getElementById('gabPreview').style.display = 'none';
+  document.getElementById('btnGuess').disabled = true;
+  renderGuessGrid();
+}
+
+// ── GUESS MODAL ──
+function openGuessModal() {
+  if (selectedGuess === null) return;
+  const ch = oppChars[selectedGuess];
+  const mImg = document.getElementById('modalImg');
+  mImg.innerHTML = ch.img ? `<img src="${ch.img}" alt="${ch.name}">` : '❓';
+  document.getElementById('modalName').textContent = ch.name;
+  document.getElementById('guessModal').classList.add('open');
+}
+
+function guessResult(correct) {
+  document.getElementById('guessModal').classList.remove('open');
+  if (correct) {
+    const ch = oppChars[selectedGuess];
+    document.getElementById('winText').textContent =
+      `Adivinaste correctamente: el personaje secreto del oponente era "${ch.name}". ¡Eres el ganador!`;
+    document.getElementById('winModal').classList.add('open');
+  } else {
+    wrongGuesses.add(selectedGuess);
+    clearGuessSelection();
+    renderGuessGrid();
+    showToast('Intento fallido. Sigue haciendo preguntas y elimina más personajes.');
+  }
+}
+
+// ── NAV ──
+function goMenu() {
+  document.getElementById('winModal').classList.remove('open');
+  document.getElementById('guessModal').classList.remove('open');
+  document.getElementById('btnMenu').style.display = 'none';
+  document.getElementById('btnRestart').style.display = 'none';
+  myTeam = ''; oppTeam = '';
+  document.querySelectorAll('#myTeamRow .team-card').forEach(c => c.classList.remove('selected-team'));
+  document.getElementById('oppStep').style.display = 'none';
+  document.getElementById('btnStartPick').disabled = true;
+  showScreen('teamScreen');
+}
+
+// ── HELPERS ──
+function avatarHTML(ch, h) {
+  if (ch.isVideo) return `<div class="pc-img" style="height:${h}px"><video src="${ch.img}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;"></video></div>`;
+  return ch.img
+    ? `<div class="pc-img" style="height:${h}px"><img src="${ch.img}" alt="${ch.name}"></div>`
+    : `<div class="pc-img" style="height:${h}px"><span style="font-size:2.4rem">❓</span></div>`;
+}
+function innerAvatar(ch) {
+  if (ch.isVideo) return `<video src="${ch.img}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
+  return ch.img ? `<img src="${ch.img}" alt="${ch.name}">` : `<span style="font-size:2.2rem">❓</span>`;
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+let _tt;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>
